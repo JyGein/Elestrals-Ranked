@@ -373,7 +373,7 @@ client.on("messageCreate", (message) => {
     JSON.parse(JSON.stringify(message.member)).roles.forEach(element => {
         if (element === "1026186647831846922") {
             //message.channel.send("Ranked Moderator sent this command");  
-            if (message.content.toUpperCase().trim() == `${prefix}RESET`/*`${prefix}RESET YES REALLY RESET EVERYTHING PASSWORD ${resetPassword}`*/) {
+            if (message.content.toUpperCase().trim() == `${prefix}RESET YES REALLY RESET EVERYTHING PASSWORD ${resetPassword}`) {
                 message.channel.send("Reset all user data.");
                 ResetUsers();
                 return;
