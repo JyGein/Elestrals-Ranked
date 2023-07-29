@@ -4,3 +4,4 @@ config.json
 package.json
 package-lock.json
 users.json
+matches.log
