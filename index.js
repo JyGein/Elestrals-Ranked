@@ -21,7 +21,7 @@ const unbanRegex = /unban ([\d]+)/i;
 
 client.on("ready", () => {
     console.log("I am ready!");
-    //client.channels.cache.get('1026185954656014356').send("Back online!");
+    client.channels.cache.get('1026185954656014356').send("Back online!");
 });
 
 const prefix = config.prefix;
@@ -46,11 +46,6 @@ client.on("messageCreate", (message) => {
     //     console.log(`Ping from ${message.author.username}#${message.author.discriminator}/${message.author.globalName}, ${ping}ms`);
     //     return;
     // }
-    
-    //show the leaderboard
-    //go through each player
-    //calc their best (var) runs and add points together
-    //add to the array
 
     //help command
     if (message.content.toUpperCase().trim() == `${prefix}HELP`) {
@@ -306,6 +301,10 @@ client.on("messageCreate", (message) => {
 
     //report who you can face
     if (message.content.toUpperCase().trim() == `${prefix}FOES`) {
+        if(!findUserUsingID(message.author.id)) {
+            message.channel.send(`You do not have an ongoing run.\nStart a run with \`!submit deckname https://elestralsdb.com/decks/############\` or \`!submit deckname\` and attach an image.`);
+            return;
+        }
         if(!findUserUsingID(message.author.id).currentRun) {
             message.channel.send(`You do not have an ongoing run.\nStart a run with \`!submit deckname https://elestralsdb.com/decks/############\` or \`!submit deckname\` and attach an image.`);
             return;
