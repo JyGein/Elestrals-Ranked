@@ -119,7 +119,7 @@ client.on("messageCreate", (message) => {
     if (message.content.toUpperCase().trim().startsWith(`${prefix}SUBMIT`)) {
         let m = submitLinkRegex.exec(message.content.trim()+" "); //note to self returns [input, capture group, capture group]
         if(!m) {
-            message.channel.send(`Start a run with \`!submit deckname https://elestralsdb.com/decks/############\` or \`!submit deckname\` and attach an image.`);
+            message.channel.send(`Start a run with \`!submit deckname https://elestralsdb.com/decks/############\` or \`!submit deckname\` and attach an image. (Only one image.)`);
             return;
         }
         if(message.attachments.first()) {
