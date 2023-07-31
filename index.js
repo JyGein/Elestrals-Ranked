@@ -46,13 +46,13 @@ client.on("messageCreate", (message) => {
     //     console.log(`Ping from ${message.author.username}#${message.author.discriminator}/${message.author.globalName}, ${ping}ms`);
     //     return;
     // }
-
+    
     //help command
     if (message.content.toUpperCase().trim() == `${prefix}HELP`) {
         message.channel.send(`Use ![command] to see how to use a command.\n\`\`\`!Leaderboard to view the leaderboard.\n!Submit to submit a decklist and start playing!\n!Report to report a match.\n!Foes to see who you can face.\n!Stats to view a player's stats.\`\`\``);
         return;
     }
-
+    
     //show the leaderboard
     if (message.content.toUpperCase().trim() == `${prefix}LEADERBOARD`) {
         let allPoints = [];
@@ -103,10 +103,14 @@ client.on("messageCreate", (message) => {
         let player = findUserUsingUSERNAME(m[1]);
         let playerPoints = [];
         player.finishedRuns.forEach(run => {
-            playerPoints.push([run.deckname, run.decklist, run.points]);
+            if(run.points != 0) {
+                playerPoints.push([run.deckname, run.decklist, run.points]);
+            }
         });
         if(player.currentRun) {
-            playerPoints.push([player.currentRun.deckname, player.currentRun.decklist, player.currentRun.points]);
+            if(player.currentRun.points != 0) {
+                playerPoints.push([player.currentRun.deckname, player.currentRun.decklist, player.currentRun.points]);
+            }
         }
         playerPoints.sort((a, b) => b[2] - a[2]);
         if(player.finishedRuns.length + !!player.currentRun > 10) {
@@ -298,7 +302,7 @@ client.on("messageCreate", (message) => {
         UpdateUsers();
         return;
     }
-
+    
     //report who you can face
     if (message.content.toUpperCase().trim() == `${prefix}FOES`) {
         if(!findUserUsingID(message.author.id)) {
@@ -425,7 +429,7 @@ client.on("messageCreate", (message) => {
                 UpdateUsers();
                 return;
             }
-
+            
             //BAN
             if (message.content.toUpperCase().trim().startsWith(`${prefix}BAN`)) {
                 let m = banRegex.exec(message.content.trim());
@@ -446,7 +450,7 @@ client.on("messageCreate", (message) => {
                 message.channel.send(`Successfully banned ${m[1]}.`);
                 return;
             }
-
+            
             //unban
             if (message.content.toUpperCase().trim().startsWith(`${prefix}UNBAN`)) {
                 let m = unbanRegex.exec(message.content.trim());
