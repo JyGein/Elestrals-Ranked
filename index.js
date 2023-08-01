@@ -4,19 +4,16 @@ const client = new Client({
     intents: 4194303
 });
 const config = require("./config.json");
-let Users = require("./users.json");
+const Users = require("./users.json");
 const fs = require("fs");
 const resetPassword = randomInt(10000000000000, 99999999999999);
 console.log(`The Password to Reset is ${resetPassword}`);
-const submitLinkRegex = /submit ([\w\s\d]+) (https:\/\/elestralsdb\.com\/decks\/[\da-f]+)?/i;
-//regexr.com/7hqgu
-const subtractRegex = /subtract ([\.\w\d]+) (\d)/i;
-//regexr.com/7hqhv
+const submitLinkRegex = /submit ([\w\s\d]+) (https:\/\/elestralsdb\.com\/decks\/[\da-f]+)?/i; //regexr.com/7hqgu
+const subtractRegex = /subtract ([\.\w\d]+) (\d)/i; //regexr.com/7hqhv
 const addRegex = /add ([\.\w\d]+) (\d)/i;
-const reportRegex = /report (\d)-(\d)/i;
-//regexr.com/7hqi5
-const statsRegex = /stats ([.\w]+)/i;
-const banRegex = /ban ([.\w]+)/i;
+const reportRegex = /report (\d)-(\d)/i; //regexr.com/7hqi5
+const statsRegex = /stats ([\.\w]+)/i;
+const banRegex = /ban ([\.\w]+)/i;
 const unbanRegex = /unban ([\d]+)/i;
 
 client.on("ready", () => {
@@ -34,12 +31,12 @@ client.on("messageCreate", (message) => {
     if (!message.content.startsWith(prefix)) {
         return;
     }
-    
     //stop banned players
     if(Users.banlist.contains(message.author.id) && !JSON.parse(JSON.stringify(message.member)).roles.contains("1026186647831846922")) {
         return;
     }
-    //return the ping
+
+    //return the ping (smth is very wrong with this (it printed -600 ping one time))
     // if (message.content.toUpperCase().trim() == `${prefix}PING`) {
     //     let ping = Date.now() - message.createdTimestamp;
     //     message.channel.send(`Pong!\n${ping}ms`);
@@ -49,49 +46,55 @@ client.on("messageCreate", (message) => {
     
     //help command
     if (message.content.toUpperCase().trim() == `${prefix}HELP`) {
-        message.channel.send(`Use ![command] to see how to use a command.\n\`\`\`!Leaderboard to view the leaderboard.\n!Submit to submit a decklist and start playing!\n!Report to report a match.\n!Foes to see who you can face.\n!Stats to view a player's stats.\`\`\``);
+        let helpMessages = [
+            "!Submit to submit a decklist and start playing!",
+            "!Leaderboard to view the leaderboard.",
+            "!Report to report a match.",
+            "!Foes to see who you can face.",
+            "!Stats to view a player's stats."
+        ]
+        message.channel.send(`Use ![command] to see how to use a command.\n\`\`\`${helpMessages.join("\n")}\`\`\``);
         return;
     }
     
     //show the leaderboard
     if (message.content.toUpperCase().trim() == `${prefix}LEADERBOARD`) {
-        let allPoints = [];
-        Users.users.forEach(object => {
-            allPoints.push([object.USERNAME, 0]);
-            if(object.finishedRuns.length+!!object.currentRun<=5) {
-                object.finishedRuns.forEach(element => {
-                    allPoints[allPoints.length-1][1] += element.points;
+        const allPoints = [];
+        Users.users.forEach(Player => {
+            allPoints.push([Player.USERNAME, 0]);
+            let playersPoints = allPoints[allPoints.length-1][1];
+            if(Player.finishedRuns.length+!!Player.currentRun<=config.bestRunCount) {
+                Player.finishedRuns.forEach(finishedRun => {
+                    playersPoints += finishedRun.points;
                 });
-                if(object.currentRun) {
-                    allPoints[allPoints.length-1][1] += object.currentRun.points;
+                if(Player.currentRun) {
+                    playersPoints += Player.currentRun.points;
                 }
             } else {
-                let tempArray = [];
-                object.finishedRuns.forEach(element => {
-                    tempArray.push(element.points);
+                const playersPointsArray = [];
+                Player.finishedRuns.forEach(finishedRun => {
+                    playersPointsArray.push(finishedRun.points);
                 });
-                if(object.currentRun) {
-                    tempArray.push(object.currentRun.points);
+                if(Player.currentRun) {
+                    playersPointsArray.push(Player.currentRun.points);
                 }
-                tempArray.sort(compareNumbers);
+                playersPointsArray.sort(compareNumbers);
                 for (let i = 0; i < config.bestRunCount; i++) {
-                    allPoints[allPoints.length-1][1] += tempArray[i];
+                    playersPoints += playersPointsArray[i];
                 }
             }
         });
         allPoints.sort((a, b) => b[1] - a[1]);
-        let topPoints;
-        if(allPoints.length > 10) {
-            topPoints = allPoints.slice(0, 10)
-        } else { topPoints = allPoints; }
+        while(allPoints.length > 10)
+            allPoints.pop();
         let count = 0;
-        message.channel.send(`\`\`\`Leaderboard:\n${topPoints.map(i => `${++count}: ${i[0]} (${i[1]} points)`).join("\n")}\`\`\``);
+        message.channel.send(`\`\`\`Leaderboard:\n${allPoints.map(i => `${++count}: ${i[0]} (${i[1]} points)`).join("\n")}\`\`\``);
         return;
     }
     
     //show a player's stats
     if (message.content.toUpperCase().trim().startsWith(`${prefix}STATS`)) {
-        let m = statsRegex.exec(message.content.trim());
+        const m = statsRegex.exec(message.content.trim());
         if(!m) {
             message.channel.send("View a player's stats with \`!stats [username]\`");
             return;
@@ -100,8 +103,8 @@ client.on("messageCreate", (message) => {
             message.channel.send("That user does not exist."); 
             return;
         }
-        let player = findUserUsingUSERNAME(m[1]);
-        let playerPoints = [];
+        const player = findUserUsingUSERNAME(m[1]);
+        const playerPoints = [];
         player.finishedRuns.forEach(run => {
             if(run.points != 0) {
                 playerPoints.push([run.deckname, run.decklist, run.points]);
@@ -113,91 +116,49 @@ client.on("messageCreate", (message) => {
             }
         }
         playerPoints.sort((a, b) => b[2] - a[2]);
-        if(player.finishedRuns.length + !!player.currentRun > 10) {
-            playerPoints = playerPoints.slice(0, 10);
-        }
+        while(playerPoints.length > 10)
+            playerPoints.pop();
         message.channel.send(`\`\`\`${m[1]}'s Stats:\n${playerPoints.map(i => `${i[0]}: ${i[2]} Points (${i[1]})`).join("\n")}\`\`\``);
     }
     
     //start a new run
     if (message.content.toUpperCase().trim().startsWith(`${prefix}SUBMIT`)) {
-        let m = submitLinkRegex.exec(message.content.trim()+" "); //note to self returns [input, capture group, capture group]
+        const m = submitLinkRegex.exec(message.content.trim()+" ");
         if(!m) {
             message.channel.send(`Start a run with \`!submit deckname https://elestralsdb.com/decks/############\` or \`!submit deckname\` and attach an image. (Only one image.)`);
             return;
         }
+        let decklistAttachment = null;
         if(message.attachments.first()) {
-            let userExisted = false;
-            Users.users.forEach(object => {
-                if(object.USERID == message.author.id) {
-                    if(findUserUsingID(message.author.id).currentRun) {
-                        findUserUsingID(message.author.id).finishedRuns.push({
-                            "points": findUserUsingID(message.author.id).currentRun.points,
-                            "deckname": findUserUsingID(message.author.id).currentRun.deckname,
-                            "decklist": findUserUsingID(message.author.id).currentRun.decklist,
-                            "number": findUserUsingID(message.author.id).currentRun.number
-                        });
-                    }
-                    findUserUsingID(message.author.id).currentRun = {
-                        "points": 0,
-                        "opponents": [],
-                        "deckname": m[1],
-                        "decklist": message.attachments.first().url,
-                        "number": findUserUsingID(message.author.id).finishedRuns[findUserUsingID(message.author.id).finishedRuns.length - 1].number + 1
-                    };
-                    console.log(`User ${message.author.username}(${message.author.id}) started a new run using ${message.attachments.first().url}.`)
-                    message.channel.send(`<@${message.author.id}> has started a new run!`);
-                    userExisted = true;  
-                }
-            });
-            
-            if(!userExisted) {
-                Users.users.push({
-                    "USERID": message.author.id, 
-                    "USERNAME": message.author.username,
-                    "finishedRuns": [],
-                    "currentRun": {
-                        "points": 0,
-                        "opponents": [],
-                        "deckname": m[1],
-                        "decklist": message.attachments.first().url,
-                        "number": 0
-                    }
-                });
-                console.log(`Created User ${message.author.username}(${message.author.id}).`);
-                console.log(`User ${message.author.username}(${message.author.id}) started a new run using ${message.attachments.first().url}.`)
-                message.channel.send(`<@${message.author.id}> has started a new run!`);
-            }
-            UpdateUsers();
-            return;
+            decklistAttachment = message.attachments.first().url;
         }
-        
         if(m[2]) {
-            let userExisted = false;
-            Users.users.forEach(object => {
-                if(object.USERID == message.author.id) {
-                    if(findUserUsingID(message.author.id).currentRun) {
-                        findUserUsingID(message.author.id).finishedRuns.push({
-                            "points": findUserUsingID(message.author.id).currentRun.points,
-                            "deckname": findUserUsingID(message.author.id).currentRun.deckname,
-                            "decklist": findUserUsingID(message.author.id).currentRun.decklist,
-                            "number": findUserUsingID(message.author.id).currentRun.number
-                        });
-                    }
-                    findUserUsingID(message.author.id).currentRun = {
-                        "points": 0,
-                        "opponents": [],
-                        "deckname": m[1],
-                        "decklist": m[2],
-                        "number": findUserUsingID(message.author.id).finishedRuns[findUserUsingID(message.author.id).finishedRuns.length - 1].number + 1
-                    };
-                    console.log(`User ${message.author.username}(${message.author.id}) started a new run using ${m[2]}}.`)
-                    message.channel.send(`<@${message.author.id}> has started a new run!`);
-                    userExisted = true;  
-                }
-            });
-            
-            if(!userExisted) {
+            decklistAttachment = m[2];
+        } 
+        if(!decklistAttachment) {
+            message.channel.send("Please attach an image of a deck or an https://elestralsdb.com deck link");
+            return;
+        }
+        if(findUserUsingID(message.author.id)) {
+            const player = findUserUsingID(message.author.id);
+            let playersRun = player.currentRun;
+            const playersFiniRuns = player.finishedRuns;
+            if(playersRun) {
+                playersFiniRuns.push({
+                    "points": playersRun.points,
+                    "deckname": playersRun.deckname,
+                    "decklist": playersRun.decklist,
+                    "number": playersRun.number
+                });
+            }
+            playersRun = {
+                "points": 0,
+                "opponents": [],
+                "deckname": m[1],
+                "decklist": decklistAttachment,
+                "number": playersFiniRuns[playersFiniRuns.length - 1].number + 1
+            };
+        } else {
                 Users.users.push({
                     "USERID": message.author.id, 
                     "USERNAME": message.author.username,
@@ -206,19 +167,15 @@ client.on("messageCreate", (message) => {
                         "points": 0,
                         "opponents": [],
                         "deckname": m[1],
-                        "decklist": m[2],
+                        "decklist": decklistAttachment,
                         "number": 0
                     }
                 });
                 console.log(`Created User ${message.author.username}(${message.author.id}).`);
-                console.log(`User ${message.author.username}(${message.author.id}) started a new run using ${m[2]}.`)
-                message.channel.send(`<@${message.author.id}> has started a new run!`);
-            }
-            UpdateUsers();
-            return;
         }
-        
-        message.channel.send("Please attach an image of a deck or an https://elestralsdb.com deck link")
+        console.log(`User ${message.author.username}(${message.author.id}) started a new run using ${decklistAttachment}.`);
+        message.channel.send(`<@${message.author.id}> has started a new run!`);
+        UpdateUsers();
         return;
     }
     
@@ -373,12 +330,11 @@ client.on("messageCreate", (message) => {
     }
     
     //admin commands
-    JSON.parse(JSON.stringify(message.member)).roles.forEach(element => {
-        if (element === "1026186647831846922") {
+    JSON.parse(JSON.stringify(message.member)).roles.forEach(roleID => {
+        if (roleID === "1026186647831846922") {
             //message.channel.send("Ranked Moderator sent this command");  
             if (message.content.toUpperCase().trim() == `${prefix}RESET YES REALLY RESET EVERYTHING PASSWORD ${resetPassword}`) {
-                message.channel.send("Reset all user data.");
-                ResetUsers();
+                ResetUsers(message);
                 return;
             }
             
@@ -492,8 +448,9 @@ function UpdateUsers() {
     fs.writeFileSync("./users.json", JSON.stringify(Users));
 }
 
-function ResetUsers() {
-    console.log("RESET ALL USERS");
+function ResetUsers(message) {
+    message.channel.send("Reset all user data.");
+    console.log(`${message.author.username}(${message.author.id}) RESET ALL USER DATA`);
     Users.users = [];
     UpdateUsers();
 }
