@@ -15,6 +15,7 @@ const reportRegex = /report (\d)-(\d)/i; //regexr.com/7hqi5
 const statsRegex = /stats ([\.\w]+)/i;
 const banRegex = /ban ([\.\w]+)/i;
 const unbanRegex = /unban ([\d]+)/i;
+const currentRunRegex = /current ([\.\w]+)/i;
 
 client.on("ready", () => {
     console.log("I am ready!");
@@ -35,7 +36,7 @@ client.on("messageCreate", (message) => {
     if(Users.banlist.contains(message.author.id) && !JSON.parse(JSON.stringify(message.member)).roles.contains("1026186647831846922")) {
         return;
     }
-
+    
     //return the ping (smth is very wrong with this (it printed -600 ping one time))
     // if (message.content.toUpperCase().trim() == `${prefix}PING`) {
     //     let ping = Date.now() - message.createdTimestamp;
@@ -51,8 +52,9 @@ client.on("messageCreate", (message) => {
             "!Leaderboard to view the leaderboard.",
             "!Report to report a match.",
             "!Foes to see who you can face.",
-            "!Stats to view a player's stats."
-        ]
+            "!Stats to view a player's stats.",
+            "!Current to view a player's current run's stats."
+        ];
         message.channel.send(`Use ![command] to see how to use a command.\n\`\`\`${helpMessages.join("\n")}\`\`\``);
         return;
     }
@@ -85,8 +87,7 @@ client.on("messageCreate", (message) => {
             }
         });
         allPoints.sort((a, b) => b[1] - a[1]);
-        while(allPoints.length > 10)
-            allPoints.pop();
+        while(allPoints.length > 10) { allPoints.pop(); }        
         let count = 0;
         message.channel.send(`\`\`\`Leaderboard:\n${allPoints.map(i => `${++count}: ${i[0]} (${i[1]} points)`).join("\n")}\`\`\``);
         return;
@@ -116,8 +117,7 @@ client.on("messageCreate", (message) => {
             }
         }
         playerPoints.sort((a, b) => b[2] - a[2]);
-        while(playerPoints.length > 10)
-            playerPoints.pop();
+        while(playerPoints.length > 10) { playerPoints.pop(); }
         message.channel.send(`\`\`\`${m[1]}'s Stats:\n${playerPoints.map(i => `${i[0]}: ${i[2]} Points (${i[1]})`).join("\n")}\`\`\``);
     }
     
@@ -159,19 +159,19 @@ client.on("messageCreate", (message) => {
                 "number": playersFiniRuns[playersFiniRuns.length - 1].number + 1
             };
         } else {
-                Users.users.push({
-                    "USERID": message.author.id, 
-                    "USERNAME": message.author.username,
-                    "finishedRuns": [],
-                    "currentRun": {
-                        "points": 0,
-                        "opponents": [],
-                        "deckname": m[1],
-                        "decklist": decklistAttachment,
-                        "number": 0
-                    }
-                });
-                console.log(`Created User ${message.author.username}(${message.author.id}).`);
+            Users.users.push({
+                "USERID": message.author.id, 
+                "USERNAME": message.author.username,
+                "finishedRuns": [],
+                "currentRun": {
+                    "points": 0,
+                    "opponents": [],
+                    "deckname": m[1],
+                    "decklist": decklistAttachment,
+                    "number": 0
+                }
+            });
+            console.log(`Created User ${message.author.username}(${message.author.id}).`);
         }
         console.log(`User ${message.author.username}(${message.author.id}) started a new run using ${decklistAttachment}.`);
         message.channel.send(`<@${message.author.id}> has started a new run!`);
@@ -182,7 +182,7 @@ client.on("messageCreate", (message) => {
     //report a bo3 match
     //console.log(message.mentions.users.first().id);
     if (message.content.toUpperCase().trim().startsWith(`${prefix}REPORT`)) {
-        let m = reportRegex.exec(message.content.trim())
+        let m = reportRegex.exec(message.content.trim());
         if(!m) {
             message.channel.send(`Report a match with \`!report #-# @opponent\`. #-# is the score of the Bo3 (The first number being the reporters score and the second being the opponents). So a score of 2-0 means the user reporting the match was the winner while 0-2 means the opponent was the winner.`);
             return;
@@ -329,10 +329,30 @@ client.on("messageCreate", (message) => {
         return;
     }
     
+    //print info about a player's current run
+    if (message.content.toUpperCase().trim().startsWith(`${prefix}CURRENT`)) {
+        const m = currentRunRegex.exec(message.content.trim());
+        if(!m) {
+            message.channel.send(`Look up a player's current run's stats with \`!Current playername\`.`);
+            return;
+        }
+        if(!findUserUsingUSERNAME(m[1])) {
+            message.channel.send(`That user does not exist.`);
+            return;
+        }
+        if(!findUserUsingUSERNAME(m[1]).currentRun) {
+            message.channel.send(`That user does not have an ongoing run.`);
+            return;
+        }
+        const playersRun = findUserUsingUSERNAME(m[1]).currentRun;
+        message.channel.send(`${m[1]}'s Current Run\`\`\`"${playersRun.deckname}" (${playersRun.decklist}):\n${5 - playersRun.opponents.length} matches left\n${playersRun.points} points\`\`\``);
+    }
+    
     //admin commands
     JSON.parse(JSON.stringify(message.member)).roles.forEach(roleID => {
         if (roleID === "1026186647831846922") {
-            //message.channel.send("Ranked Moderator sent this command");  
+            //message.channel.send("Ranked Moderator sent this command"); 
+            //reset all user data (Users.users = [])
             if (message.content.toUpperCase().trim() == `${prefix}RESET YES REALLY RESET EVERYTHING PASSWORD ${resetPassword}`) {
                 ResetUsers(message);
                 return;
