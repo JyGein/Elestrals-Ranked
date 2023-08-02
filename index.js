@@ -1,4 +1,4 @@
-const { Client } = require("discord.js");
+const { Client, EmbedBuilder } = require("discord.js");
 const { randomInt } = require("crypto");
 const client = new Client({
     intents: 4194303
@@ -16,6 +16,7 @@ const statsRegex = /stats ([\.\w]+)/i;
 const banRegex = /ban ([\.\w]+)/i;
 const unbanRegex = /unban ([\d]+)/i;
 const currentRunRegex = /current ([\.\w]+)/i;
+const isElestralsdbRegex = /https:\/\/elestralsdb\.com\/decks\/[\da-f]+/i;
 
 client.on("ready", () => {
     console.log("I am ready!");
@@ -141,7 +142,7 @@ client.on("messageCreate", (message) => {
         }
         if(findUserUsingID(message.author.id)) {
             const player = findUserUsingID(message.author.id);
-            let playersRun = player.currentRun;
+            const playersRun = player.currentRun;
             const playersFiniRuns = player.finishedRuns;
             if(playersRun) {
                 playersFiniRuns.push({
@@ -151,7 +152,7 @@ client.on("messageCreate", (message) => {
                     "number": playersRun.number
                 });
             }
-            playersRun = {
+            player.currentRun = {
                 "points": 0,
                 "opponents": [],
                 "deckname": m[1],
@@ -345,7 +346,12 @@ client.on("messageCreate", (message) => {
             return;
         }
         const playersRun = findUserUsingUSERNAME(m[1]).currentRun;
-        message.channel.send(`${m[1]}'s Current Run\`\`\`"${playersRun.deckname}" (${playersRun.decklist}):\n${5 - playersRun.opponents.length} matches left\n${playersRun.points} points\`\`\``);
+        const runEmbed = new EmbedBuilder()
+            .setColor(randomInt(0, 0xFFFFFF))
+            .setTitle(`${m[1]}'s Current Run`)
+            .setDescription(`${5 - playersRun.opponents.length} Matches Left\n${playersRun.points} Points`)
+            .setURL(playersRun.decklist);
+        message.channel.send({ embeds: [runEmbed] });
     }
     
     //admin commands
