@@ -66,7 +66,7 @@ client.on("messageCreate", (message) => {
         Users.users.forEach(Player => {
             allPoints.push([Player.USERNAME, 0]);
             let playersPoints = allPoints[allPoints.length-1][1];
-            if(Player.finishedRuns.length+!!Player.currentRun<=config.bestRunCount) {
+            if((Player.finishedRuns.length+!!Player.currentRun)<=config.bestRunCount) {
                 Player.finishedRuns.forEach(finishedRun => {
                     playersPoints += finishedRun.points;
                 });
@@ -86,6 +86,7 @@ client.on("messageCreate", (message) => {
                     playersPoints += playersPointsArray[i];
                 }
             }
+            allPoints[allPoints.length-1][1] = playersPoints;
         });
         allPoints.sort((a, b) => b[1] - a[1]);
         while(allPoints.length > 10) { allPoints.pop(); }        
@@ -353,7 +354,7 @@ client.on("messageCreate", (message) => {
             .setURL(playersRun.decklist);
         message.channel.send({ embeds: [runEmbed] });
     }
-    
+
     //admin commands
     JSON.parse(JSON.stringify(message.member)).roles.forEach(roleID => {
         if (roleID === "1026186647831846922") {
