@@ -16,7 +16,6 @@ const statsRegex = /stats ([\.\w]+)/i;
 const banRegex = /ban ([\.\w]+)/i;
 const unbanRegex = /unban ([\d]+)/i;
 const currentRunRegex = /current ([\.\w]+)/i;
-const isElestralsdbRegex = /https:\/\/elestralsdb\.com\/decks\/[\da-f]+/i;
 
 client.on("ready", () => {
     console.log("I am ready!");
