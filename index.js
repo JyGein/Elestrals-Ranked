@@ -20,7 +20,7 @@ const isElestralsdbRegex = /https:\/\/elestralsdb\.com\/decks\/[\da-f]+/i;
 
 client.on("ready", () => {
     console.log("I am ready!");
-    //client.channels.cache.get('1026185954656014356').send("Back online!");
+    client.channels.cache.get('1026185954656014356').send("Back online!");
 });
 
 const prefix = config.prefix;
