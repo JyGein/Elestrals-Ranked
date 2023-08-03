@@ -20,7 +20,7 @@ const isElestralsdbRegex = /https:\/\/elestralsdb\.com\/decks\/[\da-f]+/i;
 
 client.on("ready", () => {
     console.log("I am ready!");
-    client.channels.cache.get('1026185954656014356').send("Back online!");
+    //client.channels.cache.get('1026185954656014356').send("Back online!");
 });
 
 const prefix = config.prefix;
@@ -64,8 +64,7 @@ client.on("messageCreate", (message) => {
     if (message.content.toUpperCase().trim() == `${prefix}LEADERBOARD`) {
         const allPoints = [];
         Users.users.forEach(Player => {
-            allPoints.push([Player.USERNAME, 0]);
-            let playersPoints = allPoints[allPoints.length-1][1];
+            let playersPoints = 0;
             if((Player.finishedRuns.length+!!Player.currentRun)<=config.bestRunCount) {
                 Player.finishedRuns.forEach(finishedRun => {
                     playersPoints += finishedRun.points;
@@ -86,7 +85,7 @@ client.on("messageCreate", (message) => {
                     playersPoints += playersPointsArray[i];
                 }
             }
-            allPoints[allPoints.length-1][1] = playersPoints;
+            allPoints.push([Player.USERNAME, playersPoints]);
         });
         allPoints.sort((a, b) => b[1] - a[1]);
         while(allPoints.length > 10) { allPoints.pop(); }        
