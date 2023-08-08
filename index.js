@@ -180,18 +180,18 @@ client.on("messageCreate", (message) => {
     }
     
     //report a bo3 match
-    //console.log(message.mentions.users.first().id);
     if (message.content.toUpperCase().trim().startsWith(`${prefix}REPORT`)) {
         let m = reportRegex.exec(message.content.trim());
         if(!m) {
             message.channel.send(`Report a match with \`!report #-# @opponent\`. #-# is the score of the Bo3 (The first number being the reporters score and the second being the opponents). So a score of 2-0 means the user reporting the match was the winner while 0-2 means the opponent was the winner.`);
             return;
         }
-        if(!findUserUsingID(message.author.id)) {
+        let reporter = findUserUsingID(message.author.id);
+        if(!reporter) {
             message.channel.send(`You do not have an ongoing run.\nStart a run with \`!submit deckname https://elestralsdb.com/decks/############\` or \`!submit deckname\` and attach an image.`);
             return;
         }
-        if(!findUserUsingID(message.author.id).currentRun) {
+        if(!reporter.currentRun) {
             message.channel.send(`You do not have an ongoing run.\nStart a run with \`!submit deckname https://elestralsdb.com/decks/############\` or \`!submit deckname\` and attach an image.`);
             return;
         }
@@ -199,63 +199,54 @@ client.on("messageCreate", (message) => {
             message.channel.send(`Please mention who your opponent was.`);
             return;
         }
-        if(!findUserUsingID(message.mentions.users.first().id)) {
+        let opponent = findUserUsingID(message.mentions.users.first().id);
+        if(!opponent) {
             message.channel.send(`Your opponent has not started a run.`);
             return;
         }
-        if(!findUserUsingID(message.mentions.users.first().id).currentRun) {
+        if(!opponent.currentRun) {
             message.channel.send(`Your opponent has not started a run.`);
             return;
         }
-        if(findUserUsingID(message.author.id).currentRun.opponents.contains(`${findUserUsingID(message.mentions.users.first().id).USERNAME}${findUserUsingID(message.mentions.users.first().id).currentRun.number}`)) {
+        if(reporter.currentRun.opponents.contains(`${opponent.USERNAME}${opponent.currentRun.number}`)) {
             message.channel.send(`You've already faced this opponent in this run.`);
             return;
         }
-        if(findUserUsingID(message.mentions.users.first().id).currentRun.opponents.contains(`${findUserUsingID(message.author.id).USERNAME}${findUserUsingID(message.author.id).currentRun.number}`)) {
+        if(opponent.currentRun.opponents.contains(`${reporter.USERNAME}${reporter.currentRun.number}`)) {
             message.channel.send(`Your opponent has already faced you in their run.`);
             return;
         }
-        findUserUsingID(message.author.id).currentRun.opponents.push(`${findUserUsingID(message.mentions.users.first().id).USERNAME}${findUserUsingID(message.mentions.users.first().id).currentRun.number}`);
-        findUserUsingID(message.mentions.users.first().id).currentRun.opponents.push(`${findUserUsingID(message.author.id).USERNAME}${findUserUsingID(message.author.id).currentRun.number}`);
-        if(m[1] > m[2]) {
-            findUserUsingID(message.author.id).currentRun.points += 1;
-            message.channel.send(`<@${message.author.id}> Recorded match, ${message.author.username} wins ${m[1]} - ${m[2]} over ${findUserUsingID(message.mentions.users.first().id).USERNAME}`);
-            fs.appendFileSync("./matches.log", `${Date.now()} ${message.author.username} wins ${m[1]} - ${m[2]} over ${findUserUsingID(message.mentions.users.first().id).USERNAME}\n`);
-        } else {
-            findUserUsingID(message.mentions.users.first().id).currentRun.points +=1;
-            message.channel.send(`<@${message.author.id}> Recorded match, ${findUserUsingID(message.mentions.users.first().id).USERNAME} wins ${m[2]} - ${m[1]} over ${message.author.username}`);
-            fs.appendFileSync("./matches.log", `${Date.now()} ${findUserUsingID(message.mentions.users.first().id).USERNAME} wins ${m[2]} - ${m[1]} over ${message.author.username}\n`);
+        function addNewOpponent(a, b) {
+            a.currentRun.opponents.push(`${b.USERNAME}${b.currentRun.number}`);
         }
-        if(findUserUsingID(message.author.id).currentRun.opponents.length >= 5) {
-            if(findUserUsingID(message.author.id).currentRun.points >= 5) {
-                findUserUsingID(message.author.id).currentRun.points++;
-                client.channels.cache.get('1026185954656014356').send(`${message.author.username} has completed a perfect run with ${findUserUsingID(message.author.id).currentRun.decklist}`);
+        addNewOpponent(reporter, opponent);
+        addNewOpponent(opponent, reporter);
+        const winner = m[1] > m[2] ? reporter : opponent;
+        const loser = m[1] > m[2] ? opponent : reporter;
+        winner.currentRun.points += 1;
+        message.channel.send(`<@${message.author.id}> Recorded match, ${winner.USERNAME} wins ${Math.max(m[1], m[2])} - ${Math.min(m[1], m[2])} over ${loser.USERNAME}`);
+        fs.appendFileSync("./matches.log", `${Date.now()} ${winner.USERNAME} wins ${Math.max(m[1], m[2])} - ${Math.min(m[1], m[2])} over ${loser.USERNAME}\n`);
+
+        function completePlayersRun(player) {
+            const playersRun = player.currentRun;
+            if(playersRun.opponents.length >= 5) {
+                if(playersRun.points >= 5) {
+                    playersRun.points++;
+                    client.channels.cache.get('1026185954656014356').send(`${player.USERNAME} has completed a perfect run with ${playersRun.decklist}`);
+                }
+                message.channel.send(`${player.USERNAME}'s run completed with ${playersRun.points} points!`);
+                console.log(`${player.USERNAME} completed a run with ${playersRun.points} points`);
+                player.finishedRuns.push({
+                    "points": playersRun.points,
+                    "deckname": playersRun.deckname,
+                    "decklist": playersRun.decklist,
+                    "number": playersRun.number
+                });
+                player.currentRun = null;
             }
-            message.channel.send(`Run completed with ${findUserUsingID(message.author.id).currentRun.points} points!`);
-            console.log(`${message.author.username} completed a run with ${findUserUsingID(message.author.id).currentRun.points} points`);
-            findUserUsingID(message.author.id).finishedRuns.push({
-                "points": findUserUsingID(message.author.id).currentRun.points,
-                "deckname": findUserUsingID(message.author.id).currentRun.deckname,
-                "decklist": findUserUsingID(message.author.id).currentRun.decklist,
-                "number": findUserUsingID(message.author.id).currentRun.number
-            });
-            findUserUsingID(message.author.id).currentRun = null;
         }
-        if(findUserUsingID(message.mentions.users.first().id).currentRun.opponents.length >= 5) {
-            if(findUserUsingID(message.mentions.users.first().id).currentRun.points >= 5) {
-                findUserUsingID(message.mentions.users.first().id).currentRun.points++;
-                client.channels.cache.get('1026185954656014356').send(`${findUserUsingID(message.mentions.users.first().id).USERNAME} has completed a perfect run with ${findUserUsingID(message.mentions.users.first().id).currentRun.decklist}`);
-            }
-            message.channel.send(`Run completed with ${findUserUsingID(message.mentions.users.first().id).currentRun.points} points!`);
-            console.log(`${findUserUsingID(message.mentions.users.first().id).USERNAME} completed a run with ${findUserUsingID(message.mentions.users.first().id).currentRun.points} points`);
-            findUserUsingID(message.mentions.users.first().id).finishedRuns.push({
-                "points": findUserUsingID(message.mentions.users.first().id).currentRun.points,
-                "deckname": findUserUsingID(message.mentions.users.first().id).currentRun.deckname,
-                "decklist": findUserUsingID(message.mentions.users.first().id).currentRun.decklist,
-                "number": findUserUsingID(message.author.id).currentRun.number
-            });
-            findUserUsingID(message.mentions.users.first().id).currentRun = null;
-        }
+        completePlayersRun(reporter);
+        completePlayersRun(opponent);
         UpdateUsers();
         return;
     }
